@@ -425,6 +425,9 @@ const Sideline = () => {
                   imageUrl={selectedEntry.image_urls[lightboxImageIndex]?.url}
                   frameType={selectedFrame}
                   onImageLoad={setFramedCanvas}
+                  title={selectedEntry.title || "Untitled Collection"}
+                  filename={selectedEntry.image_urls[lightboxImageIndex]?.filename}
+                  onDownload={downloadFramedImage}
                 />
               )}
 
@@ -461,44 +464,28 @@ const Sideline = () => {
               <div className="mt-4 bg-black/60 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                 <div className="flex items-center gap-2 mb-3">
                   <Frame size={16} className="text-white" />
-                  <span className="text-white text-sm font-medium">Photo Frames</span>
+                  <span className="text-white text-sm font-medium">Choose Your Festive Frame</span>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {frameOptions.map((frame) => (
                     <button
                       key={frame.id}
                       onClick={() => setSelectedFrame(frame.id)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors border ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border hover:scale-105 ${
                         selectedFrame === frame.id
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                          ? 'bg-gradient-to-r from-primary to-primary/80 text-white border-primary shadow-lg'
+                          : 'bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-white/40'
                       }`}
                     >
                       {frame.name}
                     </button>
                   ))}
                 </div>
+                <div className="mt-3 text-xs text-white/70">
+                  💡 Click the download button inside the frame to save with your selected design!
+                </div>
               </div>
             )}
-
-            {/* Info bar */}
-            <div className="mt-4 bg-black/60 backdrop-blur-sm rounded-lg p-4 text-white border border-white/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{selectedEntry.title || "Untitled Collection"}</h3>
-                  <p className="text-sm opacity-80">
-                    {selectedEntry.image_urls[lightboxImageIndex]?.filename}
-                  </p>
-                </div>
-                <button 
-                  onClick={downloadFramedImage}
-                  className="bg-primary hover:bg-primary/80 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  <Download size={16} />
-                  Download
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

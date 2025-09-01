@@ -5,6 +5,9 @@ interface PhotoFrameProps {
   frameType: string;
   className?: string;
   onImageLoad?: (canvas: HTMLCanvasElement) => void;
+  title?: string;
+  filename?: string;
+  onDownload?: () => void;
 }
 
 const frames = {
@@ -16,7 +19,7 @@ const frames = {
   festive: { border: 55, shadow: '0 8px 30px rgba(255,69,0,0.4)', borderRadius: 30, borderColor: '#FF4500' },
 };
 
-export const PhotoFrame = ({ imageUrl, frameType, className = '', onImageLoad }: PhotoFrameProps) => {
+export const PhotoFrame = ({ imageUrl, frameType, className = '', onImageLoad, title, filename, onDownload }: PhotoFrameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -155,24 +158,59 @@ export const PhotoFrame = ({ imageUrl, frameType, className = '', onImageLoad }:
       );
 
       if (frameType !== 'none') {
-        // Add "I love NAGA" text at the bottom
+        // Add download button integrated into frame
+        const buttonWidth = 120;
+        const buttonHeight = 40;
+        const buttonX = canvas.width - buttonWidth - 15;
+        const buttonY = canvas.height - buttonHeight - 15;
+        
+        // Button background with gradient
+        const buttonGradient = ctx.createLinearGradient(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight);
+        buttonGradient.addColorStop(0, 'rgba(255,255,255,0.9)');
+        buttonGradient.addColorStop(1, 'rgba(240,240,240,0.9)');
+        ctx.fillStyle = buttonGradient;
+        ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Button border
+        ctx.strokeStyle = frame.borderColor;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Download icon and text
+        ctx.fillStyle = frame.borderColor;
+        ctx.font = 'bold 14px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('📥 Download', buttonX + buttonWidth/2, buttonY + buttonHeight/2 + 5);
+        
+        // Add "I love NAGA" text at the bottom left
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = frame.borderColor;
         ctx.lineWidth = 2;
-        ctx.font = 'bold 24px Arial, sans-serif';
-        ctx.textAlign = 'center';
+        ctx.font = 'bold 20px Arial, sans-serif';
+        ctx.textAlign = 'left';
         
-        const text = 'I love NAGA';
-        const textX = canvas.width / 2;
-        const textY = canvas.height - 10;
+        const text = 'I love NAGA ❤️';
+        const textX = 15;
+        const textY = canvas.height - 15;
         
         // Draw text with outline
         ctx.strokeText(text, textX, textY);
         ctx.fillText(text, textX, textY);
         
-        // Add decorative elements around text
-        const textWidth = ctx.measureText(text).width;
-        drawHearts(ctx, textWidth + 40, 20, 3);
+        // Add small decorative hearts around the text
+        ctx.fillStyle = '#FF69B4';
+        for (let i = 0; i < 3; i++) {
+          const heartX = textX + (i * 30) + Math.random() * 10;
+          const heartY = textY - 30 + Math.random() * 10;
+          const size = 3 + Math.random() * 2;
+          
+          ctx.beginPath();
+          ctx.arc(heartX - size/2, heartY, size/2, Math.PI, 0, false);
+          ctx.arc(heartX + size/2, heartY, size/2, Math.PI, 0, false);
+          ctx.lineTo(heartX, heartY + size);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
 
       if (onImageLoad) {
@@ -198,11 +236,40 @@ export const PhotoFrame = ({ imageUrl, frameType, className = '', onImageLoad }:
       />
       <canvas
         ref={canvasRef}
-        className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+        className="w-full h-auto max-h-[80vh] object-contain rounded-lg cursor-pointer"
         style={{
           filter: frames[frameType as keyof typeof frames]?.shadow ? `drop-shadow(${frames[frameType as keyof typeof frames].shadow})` : 'none'
         }}
+        onClick={(e) => {
+          if (frameType !== 'none' && onDownload) {
+            // Check if click is on download button area
+            const rect = e.currentTarget.getBoundingClientRect();
+            const scaleX = e.currentTarget.width / rect.width;
+            const scaleY = e.currentTarget.height / rect.height;
+            
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+            
+            const buttonWidth = 120;
+            const buttonHeight = 40;
+            const buttonX = e.currentTarget.width - buttonWidth - 15;
+            const buttonY = e.currentTarget.height - buttonHeight - 15;
+            
+            if (clickX >= buttonX && clickX <= buttonX + buttonWidth && 
+                clickY >= buttonY && clickY <= buttonY + buttonHeight) {
+              onDownload();
+            }
+          }
+        }}
       />
+      
+      {/* Title and filename overlay for framed images */}
+      {frameType !== 'none' && (title || filename) && (
+        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm max-w-xs">
+          {title && <div className="font-semibold truncate">{title}</div>}
+          {filename && <div className="text-xs opacity-80 truncate">{filename}</div>}
+        </div>
+      )}
     </div>
   );
 };
