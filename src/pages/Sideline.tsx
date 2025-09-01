@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Calendar, Download, Eye, Filter, Image as ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Download, Eye, Filter, Image as ImageIcon, X, ChevronLeft, ChevronRight, Frame } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { PhotoFrame, frameOptions } from "@/components/ui/PhotoFrame";
 
 interface SidelineEntry {
   id: string;
@@ -26,6 +27,8 @@ const Sideline = () => {
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<SidelineEntry | null>(null);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
+  const [selectedFrame, setSelectedFrame] = useState('none');
+  const [framedCanvas, setFramedCanvas] = useState<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     fetchEntries();
@@ -147,17 +150,72 @@ const Sideline = () => {
   const closeLightbox = () => {
     setSelectedEntry(null);
     setLightboxImageIndex(0);
+    setSelectedFrame('none');
+    setFramedCanvas(null);
   };
 
   const nextImage = () => {
     if (selectedEntry && lightboxImageIndex < selectedEntry.image_urls.length - 1) {
       setLightboxImageIndex(lightboxImageIndex + 1);
+      setSelectedFrame('none');
+      setFramedCanvas(null);
     }
   };
 
   const prevImage = () => {
     if (lightboxImageIndex > 0) {
       setLightboxImageIndex(lightboxImageIndex - 1);
+      setSelectedFrame('none');
+      setFramedCanvas(null);
+    }
+  };
+
+  const downloadFramedImage = async () => {
+    if (!selectedEntry) return;
+    
+    const currentFile = selectedEntry.image_urls[lightboxImageIndex];
+    
+    if (currentFile.type === 'video') {
+      // For videos, download normally
+      await downloadFile(currentFile.url, currentFile.filename);
+      return;
+    }
+
+    // For images, check if frame is applied
+    if (selectedFrame === 'none' || !framedCanvas) {
+      await downloadFile(currentFile.url, currentFile.filename);
+      return;
+    }
+
+    // Download framed image
+    try {
+      framedCanvas.toBlob((blob) => {
+        if (blob) {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `framed_${currentFile.filename}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          toast.success(`Downloaded framed ${currentFile.filename}`, {
+            action: {
+              label: "×",
+              onClick: () => toast.dismiss(),
+            },
+          });
+        }
+      }, 'image/png', 1.0);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error("Failed to download framed image", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
     }
   };
 
@@ -363,10 +421,10 @@ const Sideline = () => {
                   playsInline
                 />
               ) : (
-                <img 
-                  src={selectedEntry.image_urls[lightboxImageIndex]?.url} 
-                  alt={selectedEntry.image_urls[lightboxImageIndex]?.filename}
-                  className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+                <PhotoFrame
+                  imageUrl={selectedEntry.image_urls[lightboxImageIndex]?.url}
+                  frameType={selectedFrame}
+                  onImageLoad={setFramedCanvas}
                 />
               )}
 
@@ -398,6 +456,31 @@ const Sideline = () => {
               )}
             </div>
 
+            {/* Frame selector for images */}
+            {selectedEntry.image_urls[lightboxImageIndex]?.type === 'image' && (
+              <div className="mt-4 bg-black/60 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Frame size={16} className="text-white" />
+                  <span className="text-white text-sm font-medium">Photo Frames</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {frameOptions.map((frame) => (
+                    <button
+                      key={frame.id}
+                      onClick={() => setSelectedFrame(frame.id)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors border ${
+                        selectedFrame === frame.id
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                      }`}
+                    >
+                      {frame.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Info bar */}
             <div className="mt-4 bg-black/60 backdrop-blur-sm rounded-lg p-4 text-white border border-white/20">
               <div className="flex items-center justify-between">
@@ -408,7 +491,7 @@ const Sideline = () => {
                   </p>
                 </div>
                 <button 
-                  onClick={() => downloadFile(selectedEntry.image_urls[lightboxImageIndex].url, selectedEntry.image_urls[lightboxImageIndex].filename)}
+                  onClick={downloadFramedImage}
                   className="bg-primary hover:bg-primary/80 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   <Download size={16} />
