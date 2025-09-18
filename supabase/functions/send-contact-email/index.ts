@@ -25,29 +25,34 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { name, email, message, to }: ContactEmailRequest = await req.json();
 
+    // Determine if this is a feedback email (system emails have feedback@system.com)
+    const isFeedback = email === "feedback@system.com";
+    
     const emailResponse = await resend.emails.send({
       from: "Portfolio Contact <pauloabaquita098956@gmail.com>",
       to: [to],
-      subject: `New Contact Form Message from ${name}`,
+      subject: isFeedback ? `New Feedback Received from ${name}` : `New Contact Form Message from ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #8e35ef;">New Contact Form Submission</h2>
+          <h2 style="color: #8e35ef;">${isFeedback ? 'New Feedback Submission' : 'New Contact Form Submission'}</h2>
           
           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #333;">Contact Details</h3>
+            <h3 style="margin-top: 0; color: #333;">${isFeedback ? 'Feedback Details' : 'Contact Details'}</h3>
             <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
+            ${!isFeedback ? `<p><strong>Email:</strong> ${email}</p>` : ''}
           </div>
           
           <div style="background: #fff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px;">
-            <h3 style="margin-top: 0; color: #333;">Message</h3>
+            <h3 style="margin-top: 0; color: #333;">${isFeedback ? 'Feedback' : 'Message'}</h3>
             <p style="line-height: 1.6; color: #555;">${message.replace(/\n/g, '<br>')}</p>
           </div>
           
-          <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
-            <p style="margin: 0; color: #2d5a2d; font-size: 14px;">
-              This message was sent from your portfolio contact form. 
-              Reply directly to <strong>${email}</strong> to respond to ${name}.
+          <div style="margin-top: 20px; padding: 15px; background: ${isFeedback ? '#f0f8ff' : '#e8f5e8'}; border-radius: 8px;">
+            <p style="margin: 0; color: ${isFeedback ? '#1e3a8a' : '#2d5a2d'}; font-size: 14px;">
+              ${isFeedback 
+                ? 'This feedback was submitted through your website feedback widget.' 
+                : `This message was sent from your portfolio contact form. Reply directly to <strong>${email}</strong> to respond to ${name}.`
+              }
             </p>
           </div>
         </div>
