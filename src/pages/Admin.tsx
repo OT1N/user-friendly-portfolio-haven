@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Upload, Image as ImageIcon, LogOut, Lock, Calendar, Trash2, Filter, Check, X } from "lucide-react";
+import { Upload, Image as ImageIcon, LogOut, Lock, Calendar, Trash2, Filter, Check, X, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import type { User } from "@supabase/supabase-js";
+import FeedbackAnalytics from "@/components/ui/FeedbackAnalytics";
 
 const ADMIN_EMAIL = "pauloabaquita098956@gmail.com";
 const ADMIN_PASSWORD = "098956470123paulo";
@@ -455,16 +457,16 @@ const Admin = () => {
       <main className="pt-24 pb-16">
         <div className="container-section">
           {/* Header */}
-          <div className="flex items-center justify-between mb-16">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <div className="inline-flex items-center justify-center gap-2 mb-4 px-4 py-2 rounded-full bg-primary/10">
                 <ImageIcon size={16} className="text-primary" />
                 <span className="text-sm font-medium">Admin Dashboard</span>
               </div>
               
-              <h1 className="heading-lg mb-2">Sideline Management</h1>
+              <h1 className="heading-lg mb-2">Dashboard</h1>
               <p className="text-muted-foreground">
-                Upload and manage image/video batches for the sideline gallery
+                Manage sideline gallery and customer feedback
               </p>
             </div>
 
@@ -477,8 +479,23 @@ const Admin = () => {
             </button>
           </div>
 
-          {/* Upload Section */}
-          <div className="mb-12">
+          {/* Tabs */}
+          <Tabs defaultValue="sideline" className="space-y-8">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="sideline" className="flex items-center gap-2">
+                <ImageIcon size={16} />
+                Sideline Management
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="flex items-center gap-2">
+                <MessageSquare size={16} />
+                Feedback Analytics
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="sideline" className="space-y-8">
+
+              {/* Upload Section */}
+              <div className="mb-12">
             <div className="glass-card p-8">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                 <Upload size={20} />
@@ -540,8 +557,8 @@ const Admin = () => {
             </div>
           </div>
 
-          {/* Entries Table */}
-          <div>
+              {/* Entries Table */}
+              <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Uploaded Batches ({filteredEntries.length})</h2>
               
@@ -703,9 +720,15 @@ const Admin = () => {
                     </tbody>
                   </table>
                 </div>
+                </div>
+              )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="feedback">
+              <FeedbackAnalytics />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
