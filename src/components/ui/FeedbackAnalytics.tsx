@@ -330,7 +330,7 @@ const FeedbackAnalytics = () => {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Suggestion</label>
                 <div className="mt-2 p-4 bg-muted/50 rounded-lg">
-                  <p className="text-base leading-relaxed">{selectedFeedback.suggestion}</p>
+                  <p className="text-base leading-relaxed whitespace-normal break-words">{selectedFeedback.suggestion}</p>
                 </div>
               </div>
 
