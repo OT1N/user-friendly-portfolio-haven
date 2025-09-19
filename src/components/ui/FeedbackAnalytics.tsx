@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { MessageSquare, Star, Users, TrendingUp } from "lucide-react";
+import { MessageSquare, Star, Users, TrendingUp, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface SuggestionData {
   id: string;
@@ -29,6 +31,8 @@ const FeedbackAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [selectedFeedback, setSelectedFeedback] = useState<SuggestionData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]); // Today's date
+  const [showAll, setShowAll] = useState(false);
 
   const fetchSuggestions = async () => {
     try {
@@ -50,21 +54,29 @@ const FeedbackAnalytics = () => {
     fetchSuggestions();
   }, []);
 
+  // Filter suggestions based on date and showAll state
+  const filteredSuggestions = showAll 
+    ? suggestions 
+    : suggestions.filter(suggestion => {
+        const suggestionDate = new Date(suggestion.created_at).toISOString().split('T')[0];
+        return suggestionDate === dateFilter;
+      });
+
   // Calculate ratings distribution
   const ratingsData: RatingData[] = [1, 2, 3, 4, 5].map(rating => ({
     rating,
-    count: suggestions.filter(s => s.rating === rating).length
+    count: filteredSuggestions.filter(s => s.rating === rating).length
   }));
 
   // Calculate age groups
   const ageGroups = {
-    'Kids (0-12)': suggestions.filter(s => s.age <= 12).length,
-    'Teenagers (13-19)': suggestions.filter(s => s.age >= 13 && s.age <= 19).length,
-    'Adults (20-59)': suggestions.filter(s => s.age >= 20 && s.age <= 59).length,
-    'Elderly (60+)': suggestions.filter(s => s.age >= 60).length,
+    'Kids (0-12)': filteredSuggestions.filter(s => s.age <= 12).length,
+    'Teenagers (13-19)': filteredSuggestions.filter(s => s.age >= 13 && s.age <= 19).length,
+    'Adults (20-59)': filteredSuggestions.filter(s => s.age >= 20 && s.age <= 59).length,
+    'Elderly (60+)': filteredSuggestions.filter(s => s.age >= 60).length,
   };
 
-  const totalSuggestions = suggestions.length;
+  const totalSuggestions = filteredSuggestions.length;
   const ageGroupData: AgeGroupData[] = Object.entries(ageGroups).map(([name, count]) => ({
     name,
     count,
@@ -73,7 +85,7 @@ const FeedbackAnalytics = () => {
 
   // Calculate happiness summary
   const averageRating = totalSuggestions > 0 
-    ? suggestions.reduce((sum, s) => sum + s.rating, 0) / totalSuggestions 
+    ? filteredSuggestions.reduce((sum, s) => sum + s.rating, 0) / totalSuggestions 
     : 0;
 
   const getHappinessSummary = () => {
@@ -144,7 +156,7 @@ const FeedbackAnalytics = () => {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {totalSuggestions > 0 ? Math.round(suggestions.reduce((sum, s) => sum + s.age, 0) / totalSuggestions) : 0}
+                {totalSuggestions > 0 ? Math.round(filteredSuggestions.reduce((sum, s) => sum + s.age, 0) / totalSuggestions) : 0}
               </p>
               <p className="text-sm text-muted-foreground">Average Age</p>
             </div>
@@ -228,15 +240,48 @@ const FeedbackAnalytics = () => {
       {/* Feedback Table */}
       <div className="glass-card overflow-hidden">
         <div className="p-6 border-b">
-          <h3 className="text-lg font-semibold">All Feedback Submissions</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h3 className="text-lg font-semibold">All Feedback Submissions</h3>
+            
+            {/* Date Filter Controls */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    setShowAll(false);
+                  }}
+                  className="w-auto text-sm"
+                  disabled={showAll}
+                />
+              </div>
+              
+              <Button
+                variant={showAll ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowAll(!showAll)}
+                className="text-sm"
+              >
+                All
+              </Button>
+            </div>
+          </div>
         </div>
         
-        {suggestions.length === 0 ? (
+        {filteredSuggestions.length === 0 ? (
           <div className="text-center py-16">
             <MessageSquare size={64} className="mx-auto text-muted-foreground mb-4" />
-            <h4 className="text-lg font-semibold mb-2">No feedback yet</h4>
+            <h4 className="text-lg font-semibold mb-2">
+              {showAll ? "No feedback yet" : "No feedback for selected date"}
+            </h4>
             <p className="text-muted-foreground">
-              Feedback submissions will appear here once customers start using the feedback widget.
+              {showAll 
+                ? "Feedback submissions will appear here once customers start using the feedback widget."
+                : "Try selecting a different date or click 'All' to see all feedback."
+              }
             </p>
           </div>
         ) : (
@@ -252,7 +297,7 @@ const FeedbackAnalytics = () => {
                 </tr>
               </thead>
               <tbody>
-                {suggestions.map((suggestion, index) => (
+                {filteredSuggestions.map((suggestion, index) => (
                   <tr 
                     key={suggestion.id} 
                     className={`border-b hover:bg-muted/20 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-background' : 'bg-muted/10'}`}
