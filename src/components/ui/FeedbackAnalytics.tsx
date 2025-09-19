@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MessageSquare, Star, Users, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SuggestionData {
   id: string;
@@ -26,6 +27,8 @@ interface AgeGroupData {
 const FeedbackAnalytics = () => {
   const [suggestions, setSuggestions] = useState<SuggestionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFeedback, setSelectedFeedback] = useState<SuggestionData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchSuggestions = async () => {
     try {
@@ -250,7 +253,14 @@ const FeedbackAnalytics = () => {
               </thead>
               <tbody>
                 {suggestions.map((suggestion, index) => (
-                  <tr key={suggestion.id} className={`border-b hover:bg-muted/20 transition-colors ${index % 2 === 0 ? 'bg-background' : 'bg-muted/10'}`}>
+                  <tr 
+                    key={suggestion.id} 
+                    className={`border-b hover:bg-muted/20 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-background' : 'bg-muted/10'}`}
+                    onClick={() => {
+                      setSelectedFeedback(suggestion);
+                      setIsModalOpen(true);
+                    }}
+                  >
                     <td className="p-4 font-medium">{suggestion.name}</td>
                     <td className="p-4">{suggestion.age}</td>
                     <td className="p-4">
@@ -280,6 +290,64 @@ const FeedbackAnalytics = () => {
           </div>
         )}
       </div>
+
+      {/* Feedback Detail Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Feedback Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedFeedback && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Name</label>
+                  <p className="text-lg font-medium">{selectedFeedback.name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Age</label>
+                  <p className="text-lg font-medium">{selectedFeedback.age} years old</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Rating</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star 
+                        key={i} 
+                        size={20} 
+                        className={i < selectedFeedback.rating ? "text-yellow-400 fill-current" : "text-gray-300"} 
+                      />
+                    ))}
+                  </div>
+                  <span className="text-lg font-medium">({selectedFeedback.rating}/5)</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Suggestion</label>
+                <div className="mt-2 p-4 bg-muted/50 rounded-lg">
+                  <p className="text-base leading-relaxed">{selectedFeedback.suggestion}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Submitted On</label>
+                <p className="text-base">{new Date(selectedFeedback.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
